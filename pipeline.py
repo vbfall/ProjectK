@@ -17,11 +17,11 @@ class CleanDataTask(luigi.Task):
     def run(self):
         import pandas
 
-        data = pandas.read_csv(self.tweet_file, encoding='ANSI')
+        data = pandas.read_csv(self.tweet_file, encoding='ANSI', index_col='_unit_id')
         data = data.dropna(subset=['tweet_coord'])
         data = data[(data['tweet_coord']!='[0.0, 0.0]')]
 
-        data.to_csv(self.output_file, index=False)
+        data.to_csv(self.output_file)
 
 
 class TrainingDataTask(luigi.Task):
