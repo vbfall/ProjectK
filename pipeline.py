@@ -36,6 +36,8 @@ class TrainingDataTask(luigi.Task):
     output_file = luigi.Parameter(default='features.csv')
 
     # TODO...
+    import pandas
+
     def requires(self):
         return CleanDataTask(self.tweet_file)
 
@@ -43,11 +45,15 @@ class TrainingDataTask(luigi.Task):
         return luigi.LocalTarget(self.output_file)
 
     def run(self):
-        import pandas
-
         clean_data = pandas.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
         cities_data = pandas.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
+        clean_data['coord'] = self._convert_coordinates(clean_data['tweet_coord'])
+
+    def _convert_coordinates(self, coord_series):
+        coord = coord_series.str.replace('[','').str.replace(']','') \
+                .apply(lambda x : numpy.fromstring(x, sep=','))
+        return coord
 
 
 class TrainModelTask(luigi.Task):
