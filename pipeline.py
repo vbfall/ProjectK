@@ -89,7 +89,24 @@ class TrainModelTask(luigi.Task):
     tweet_file = luigi.Parameter()
     output_file = luigi.Parameter(default='model.pkl')
 
-    # TODO...
+    def requires(self):
+        return TrainingDataTask(self.tweet_file)
+
+    def output(self):
+        return luigi.LocalTarget(self.output_file)
+
+    def run(self):
+        import pandas as pd
+        import pickle
+        from sklearn.tree import DecisionTreeClassifier
+
+        features = pd.read_csv('features.csv')
+        # with the current simple features, nothing more complex than
+        # a decision tree is expected to output increased accuracy
+        tweets_model = DecisionTreeClassifier()
+        tweets_model.fit(features.drop('target', axis=1), features['target'])
+
+        pickle.dump(tweets_model, open(self.output_file, 'wb'))
 
 
 class ScoreTask(luigi.Task):
@@ -106,7 +123,7 @@ class ScoreTask(luigi.Task):
 
     # TODO...
     def requires(self):
-        return TrainingDataTask(self.tweet_file)
+        return TrainModelTask(self.tweet_file)
 
     def output(self):
         return luigi.LocalTarget(self.output_file)
