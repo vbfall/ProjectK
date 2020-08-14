@@ -36,6 +36,18 @@ class TrainingDataTask(luigi.Task):
     output_file = luigi.Parameter(default='features.csv')
 
     # TODO...
+    def requires(self):
+        return CleanDataTask(self.tweet_file)
+
+    def output(self):
+        return luigi.LocalTarget(self.output_file)
+
+    def run(self):
+        import pandas
+
+        clean_data = pandas.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
+        cities_data = pandas.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
+
 
 
 class TrainModelTask(luigi.Task):
@@ -64,7 +76,7 @@ class ScoreTask(luigi.Task):
 
     # TODO...
     def requires(self):
-        return CleanDataTask(self.tweet_file)
+        return TrainingDataTask(self.tweet_file)
 
     def output(self):
         return luigi.LocalTarget(self.output_file)
