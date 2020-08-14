@@ -15,9 +15,9 @@ class CleanDataTask(luigi.Task):
         return luigi.LocalTarget(self.output_file)
 
     def run(self):
-        import pandas
+        import pandas as pd
 
-        data = pandas.read_csv(self.tweet_file, encoding='ANSI', index_col='_unit_id')
+        data = pd.read_csv(self.tweet_file, encoding='ANSI', index_col='_unit_id')
         data = data.dropna(subset=['tweet_coord'])
         data = data[(data['tweet_coord']!='[0.0, 0.0]')]
 
@@ -36,7 +36,8 @@ class TrainingDataTask(luigi.Task):
     output_file = luigi.Parameter(default='features.csv')
 
     # TODO...
-    import pandas
+    import pandas as pd
+    import numpy as np
 
     def requires(self):
         return CleanDataTask(self.tweet_file)
@@ -45,12 +46,13 @@ class TrainingDataTask(luigi.Task):
         return luigi.LocalTarget(self.output_file)
 
     def run(self):
-        clean_data = pandas.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
-        cities_data = pandas.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
+        clean_data = pd.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
+        cities_data = pd.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
-        clean_data['coord'] = self._convert_coordinates(clean_data['tweet_coord'])
+        cities['coord'] = cities.apply(lambda x : np.array((x['latitude'], x['longitude'])), axis=1)
+        clean_data['coord'] = self._convert_tweet_coord(clean_data['tweet_coord'])
 
-    def _convert_coordinates(self, coord_series):
+    def _convert_tweet_coord(self, coord_series_or_x):
         coord = coord_series.str.replace('[','').str.replace(']','') \
                 .apply(lambda x : numpy.fromstring(x, sep=','))
         return coord
