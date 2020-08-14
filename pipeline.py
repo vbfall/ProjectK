@@ -49,10 +49,12 @@ class TrainingDataTask(luigi.Task):
         clean_data = pd.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
         cities_data = pd.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
-        cities['coord'] = cities.apply(lambda x : np.array((x['latitude'], x['longitude'])), axis=1)
+        # convert all coordinates to numpy arrays
+        cities_data['coord'] = cities_data.apply(lambda x : np.array((x['latitude'], x['longitude'])), axis=1)
         clean_data['coord'] = self._convert_tweet_coord(clean_data['tweet_coord'])
 
         # find closest city to each tweet
+        clean_data['closest_city'] = clean_data['coord'].apply(lambda tweet_coord : self._find_closest_city(tweet_coord, cities_data))
         # one hot encode
         # write to output_file
 
@@ -60,6 +62,12 @@ class TrainingDataTask(luigi.Task):
         coord = coord_series.str.replace('[','').str.replace(']','') \
                 .apply(lambda x : numpy.fromstring(x, sep=','))
         return coord
+
+    def _find_closest_city(self, location, cities_data):
+        distances = cities_coord.apply(lambda city_coord : numpy.linalg.norm(location - city_coord))
+        min_distance_id = distances.idxmin()
+        closest_city = cities_data['name'][min_distance_id]
+        return closest_city
 
 
 class TrainModelTask(luigi.Task):
