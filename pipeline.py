@@ -101,6 +101,7 @@ class TrainModelTask(luigi.Task):
         from sklearn.tree import DecisionTreeClassifier
 
         features = pd.read_csv('features.csv')
+        features = features.replace(to_replace={'target':{'negative':0, 'neutral':1, 'positive':2}})
         # with the current simple features, nothing more complex than
         # a decision tree is expected to output increased accuracy
         tweets_model = DecisionTreeClassifier()
