@@ -52,6 +52,10 @@ class TrainingDataTask(luigi.Task):
         cities['coord'] = cities.apply(lambda x : np.array((x['latitude'], x['longitude'])), axis=1)
         clean_data['coord'] = self._convert_tweet_coord(clean_data['tweet_coord'])
 
+        # find closest city to each tweet
+        # one hot encode
+        # write to output_file
+
     def _convert_tweet_coord(self, coord_series_or_x):
         coord = coord_series.str.replace('[','').str.replace(']','') \
                 .apply(lambda x : numpy.fromstring(x, sep=','))
