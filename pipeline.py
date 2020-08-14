@@ -46,7 +46,7 @@ class TrainingDataTask(luigi.Task):
         import numpy as np
         import pandas as pd
 
-        clean_data = pd.read_csv('clean_data.csv', usecols=['airline_sentiment', 'tweet_coord'])
+        clean_data = pd.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
         cities_data = pd.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
         # convert all coordinates to numpy arrays
@@ -61,7 +61,7 @@ class TrainingDataTask(luigi.Task):
         # add target back
         features['target'] = clean_data['airline_sentiment']
         # write to output_file
-        features.to_csv(self.output_file)
+        features.to_csv(self.output_file, index_label='_unit_id')
 
     def _convert_tweet_coord(self, coord_series):
         import numpy as np
@@ -99,7 +99,7 @@ class TrainModelTask(luigi.Task):
         import pickle
         from sklearn.tree import DecisionTreeClassifier
 
-        features = pd.read_csv('features.csv')
+        features = pd.read_csv('features.csv', index_col='_unit_id')
         features = features.replace(to_replace={'target':{'negative':0, 'neutral':1, 'positive':2}})
         # with the current simple features, nothing more complex than
         # a decision tree is expected to output increased accuracy
@@ -135,7 +135,7 @@ class ScoreTask(luigi.Task):
 
         # Produce a DataFrame with one-hot encoded vectors for
         # all cities in the training dataset
-        score_data = pd.read_csv('features.csv')
+        score_data = pd.read_csv('features.csv', index_col='_unit_id')
         score_data = score_data.drop(labels=['target'], axis=1)
         score_data = score_data.drop_duplicates()
         # TODO: replace indexes in score_data with city names
