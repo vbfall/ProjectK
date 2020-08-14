@@ -11,7 +11,17 @@ class CleanDataTask(luigi.Task):
     tweet_file = luigi.Parameter()
     output_file = luigi.Parameter(default='clean_data.csv')
 
-    # TODO...
+    def output(self):
+        return luigi.LocalTarget(self.output_file)
+
+    def run(self):
+        import pandas
+
+        data = pandas.read_csv(self.tweet_file, encoding='ANSI')
+        data = data.dropna(subset=['tweet_coord'])
+        data = data[(data['tweet_coord']!='[0.0, 0.0]')]
+
+        data.to_csv(self.output_file, index=False)
 
 
 class TrainingDataTask(luigi.Task):
@@ -53,6 +63,15 @@ class ScoreTask(luigi.Task):
     output_file = luigi.Parameter(default='scores.csv')
 
     # TODO...
+    def requires(self):
+        return CleanDataTask(self.tweet_file)
+
+    def output(self):
+        return luigi.LocalTarget(self.output_file)
+
+    def run(self):
+        with self.output().open('w') as out_file:
+            out_file.write('score not completed yet!')
 
 
 if __name__ == "__main__":
