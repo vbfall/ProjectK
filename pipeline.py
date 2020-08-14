@@ -56,9 +56,13 @@ class TrainingDataTask(luigi.Task):
 
         # find closest city to each tweet
         clean_data['closest_city'] = clean_data['coord'].apply(lambda tweet_coord : self._find_closest_city(tweet_coord, cities_data))
+
         # one hot encode
+        features = pd.get_dummies(clean_data['closest_city'])
+        # add target back
+        features['target'] = clean_data['airline_sentiment']
         # write to output_file
-        clean_data.to_csv(self.output_file)
+        features.to_csv(self.output_file)
 
     def _convert_tweet_coord(self, coord_series):
         import numpy as np
