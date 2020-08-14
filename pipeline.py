@@ -1,6 +1,7 @@
 """ Rubikloud take home problem """
 import luigi
 
+# TODO: reference previous tasks outputs in Luigi fashion
 
 class CleanDataTask(luigi.Task):
     """ Cleans the input CSV file by removing any rows without valid geo-coordinates.
@@ -35,8 +36,6 @@ class TrainingDataTask(luigi.Task):
     cities_file = luigi.Parameter(default='cities.csv')
     output_file = luigi.Parameter(default='features.csv')
 
-    # TODO...
-
     def requires(self):
         return CleanDataTask(self.tweet_file)
 
@@ -47,7 +46,7 @@ class TrainingDataTask(luigi.Task):
         import numpy as np
         import pandas as pd
 
-        clean_data = pd.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
+        clean_data = pd.read_csv('clean_data.csv', usecols=['airline_sentiment', 'tweet_coord'])
         cities_data = pd.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
         # convert all coordinates to numpy arrays
@@ -104,10 +103,10 @@ class TrainModelTask(luigi.Task):
         features = features.replace(to_replace={'target':{'negative':0, 'neutral':1, 'positive':2}})
         # with the current simple features, nothing more complex than
         # a decision tree is expected to output increased accuracy
-        tweets_model = DecisionTreeClassifier()
-        tweets_model.fit(features.drop('target', axis=1), features['target'])
+        cities_model = DecisionTreeClassifier()
+        cities_model.fit(features.drop('target', axis=1), features['target'])
 
-        pickle.dump(tweets_model, open(self.output_file, 'wb'))
+        pickle.dump(cities_model, open(self.output_file, 'wb'))
 
 
 class ScoreTask(luigi.Task):
@@ -122,16 +121,34 @@ class ScoreTask(luigi.Task):
     tweet_file = luigi.Parameter()
     output_file = luigi.Parameter(default='scores.csv')
 
-    # TODO...
     def requires(self):
-        return TrainModelTask(self.tweet_file)
+        return [TrainingDataTask(self.tweet_file),
+                TrainModelTask(self.tweet_file)]
 
     def output(self):
         return luigi.LocalTarget(self.output_file)
 
     def run(self):
-        with self.output().open('w') as out_file:
-            out_file.write('score not completed yet!')
+        import pandas as pd
+        import pickle
+        from sklearn.tree import DecisionTreeClassifier
+
+        # Produce a DataFrame with one-hot encoded vectors for
+        # all cities in the training dataset
+        score_data = pd.read_csv('features.csv')
+        score_data = score_data.drop(labels=['target'], axis=1)
+        score_data = score_data.drop_duplicates()
+        # TODO: replace indexes in score_data with city names
+
+        score_data.to_csv('score_data.csv')
+
+        cities_model = pickle.load(open('model.pkl', 'rb'))
+
+        results = cities_model.predict_proba(score_data)
+        results = pd.DataFrame(results)
+        # TODO: sort results on descending prediction of positive
+
+        results.to_csv(self.output_file)
 
 
 if __name__ == "__main__":
