@@ -148,7 +148,7 @@ class ScoreTask(luigi.Task):
         city_list = score_data[score_data==1].stack().reset_index().set_index('_unit_id').rename(columns={'level_1':'city_name'})
         results = results.set_index(city_list['city_name'])
 
-        # TODO: sort results on descending prediction of positive
+        results = results.sort_values(by=[0, 1], ascending=False)
 
         results.to_csv(self.output_file)
 
