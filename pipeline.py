@@ -1,4 +1,4 @@
-""" Rubikloud take home problem """
+
 import luigi
 
 class CleanDataTask(luigi.Task):
@@ -58,6 +58,10 @@ class TrainingDataTask(luigi.Task):
         features = pd.get_dummies(clean_data['closest_city'])
         # add target back
         features['target'] = clean_data['airline_sentiment']
+
+        # Due to the nature of this exercise
+        # there will be no train-test split
+
         # write to output_file
         features.to_csv(self.output_file, index_label='_unit_id')
 
