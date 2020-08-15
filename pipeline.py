@@ -1,8 +1,6 @@
 """ Rubikloud take home problem """
 import luigi
 
-# TODO: reference previous tasks outputs in Luigi fashion
-
 class CleanDataTask(luigi.Task):
     """ Cleans the input CSV file by removing any rows without valid geo-coordinates.
 
@@ -46,7 +44,7 @@ class TrainingDataTask(luigi.Task):
         import numpy as np
         import pandas as pd
 
-        clean_data = pd.read_csv('clean_data.csv', usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
+        clean_data = pd.read_csv(self.input().path, usecols=['_unit_id', 'airline_sentiment', 'tweet_coord'], index_col='_unit_id')
         cities_data = pd.read_csv(self.cities_file, usecols=['name', 'latitude', 'longitude'])
 
         # convert all coordinates to numpy arrays
@@ -99,10 +97,10 @@ class TrainModelTask(luigi.Task):
         import pickle
         from sklearn.tree import DecisionTreeClassifier
 
-        features = pd.read_csv('features.csv', index_col='_unit_id')
+        features = pd.read_csv(self.input().path, index_col='_unit_id')
         features = features.replace(to_replace={'target':{'negative':0, 'neutral':1, 'positive':2}})
-        # with the current simple features, nothing more complex than
-        # a decision tree is expected to output increased accuracy
+        # with the current simple features, there seems to be no compelling
+        # reason to try any model more complex than a decision tree
         cities_model = DecisionTreeClassifier()
         cities_model.fit(features.drop('target', axis=1), features['target'])
 
@@ -122,8 +120,8 @@ class ScoreTask(luigi.Task):
     output_file = luigi.Parameter(default='scores.csv')
 
     def requires(self):
-        return [TrainingDataTask(self.tweet_file),
-                TrainModelTask(self.tweet_file)]
+        return {'features': TrainingDataTask(self.tweet_file),
+                'model': TrainModelTask(self.tweet_file)}
 
     def output(self):
         return luigi.LocalTarget(self.output_file)
@@ -135,12 +133,12 @@ class ScoreTask(luigi.Task):
 
         # Produce a DataFrame with one-hot encoded vectors for
         # all cities in the training dataset
-        score_data = pd.read_csv('features.csv', index_col='_unit_id')
+        score_data = pd.read_csv(self.input()['features'].path, index_col='_unit_id')
         score_data = score_data.drop(labels=['target'], axis=1)
         score_data = score_data.drop_duplicates()
 
         # load model and predict probabilities
-        cities_model = pickle.load(open('model.pkl', 'rb'))
+        cities_model = pickle.load(open(self.input()['model'].path, 'rb'))
         results = cities_model.predict_proba(score_data)
         results = pd.DataFrame(results)
 
