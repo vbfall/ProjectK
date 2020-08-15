@@ -138,14 +138,16 @@ class ScoreTask(luigi.Task):
         score_data = pd.read_csv('features.csv', index_col='_unit_id')
         score_data = score_data.drop(labels=['target'], axis=1)
         score_data = score_data.drop_duplicates()
-        # TODO: replace indexes in score_data with city names
 
-        score_data.to_csv('score_data.csv')
-
+        # load model and predict probabilities
         cities_model = pickle.load(open('model.pkl', 'rb'))
-
         results = cities_model.predict_proba(score_data)
         results = pd.DataFrame(results)
+
+        # replace indexes with city names
+        city_list = score_data[score_data==1].stack().reset_index().set_index('_unit_id').rename(columns={'level_1':'city_name'})
+        results = results.set_index(city_list['city_name'])
+
         # TODO: sort results on descending prediction of positive
 
         results.to_csv(self.output_file)
